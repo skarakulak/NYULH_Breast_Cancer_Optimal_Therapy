@@ -1,0 +1,7 @@
+{
+    "COUNTRY_DATA": "countries",
+    "MAPPINGS": "categ_mappings",
+    "GEN_DATA": "data_prep_results",
+    "DATA_PREP_SCRIPTS": "data_prep_scripts",
+    "ENUM_DICT" : "enums.json"
+}
