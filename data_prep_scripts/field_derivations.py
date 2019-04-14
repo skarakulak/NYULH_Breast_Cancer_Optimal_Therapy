@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-def deriveRelativesCateg(row):
+def derive_relatives_categ(row):
     row.fillna('--',inplace=True)
     row = row.apply(lambda x: str(x) if type(x) != str else x)
     if row['Relative:'] in ['sister','brother', 'half-sister','daughter']:

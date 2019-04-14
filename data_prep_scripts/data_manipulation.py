@@ -4,15 +4,21 @@ import os
 import json
 from collections import defaultdict
 
+def get_path(x):
+    '''
+    returns the path of the given file/folder from path.json file
+    '''
+    with open('paths.json', 'r') as f:
+        enum_path = json.load(f)[x]
+    return enum_path
 
 def read_enum_dict():
     '''
     reads the json files that contains the category->enum mappings
-    and returns as a dictionary. If it doesn't exists, the function
-    creates one.
+    and returns as a dictionary. If the dictionary doesn't exists,
+    the function creates one.
     '''
-    with open('paths.json', 'r') as f:
-        enum_path = json.load(f)['ENUM_DICT']
+    enum_path = os.path.join(get_path('FOLDER_COL_VAL_DICTS'), get_path('ENUM_DICT'))
 
     if os.path.isfile(enum_path):
         with open(enum_path, 'r') as f: 
@@ -24,8 +30,13 @@ def read_enum_dict():
         return defaultdict(lambda: defaultdict(lambda: 0) )
 
 def write_enum_dict(enum_dict, na_vals=['', np.nan,'---']):
-    with open('paths.json', 'r') as f:
-        enum_path = json.load(f)['ENUM_DICT']
+    '''
+    args:
+      enum_dict: dictionary to save in the json format
+      na_vals:   values to be treated as NaN and consequently 
+                 would have zero values in the dictionary
+    '''
+    enum_path = os.path.join(get_path('FOLDER_COL_VAL_DICTS'), get_path('ENUM_DICT'))
 
     with open(enum_path, 'w') as f:
         for v in enum_dict.values():
@@ -35,7 +46,12 @@ def write_enum_dict(enum_dict, na_vals=['', np.nan,'---']):
 
 
     
-def df_enum_categ_vars(df_block, col_names_categ, enum_dict, na_vals=['', np.nan,'---']):    
+def df_enum_categ_vars(df_block, col_names_categ, enum_dict, na_vals=['', np.nan,'---']): 
+    '''
+    Converts categorical values into enum valus and using the `enum_dict`.
+    If a given value is not in the `enum_dict`, creates a enum value and saves
+    over the existing `enum_dict`
+    '''   
     for col in col_names_categ:
         max_enum = 0 if len(enum_dict[col]) == 0 else max(enum_dict[col].values())
         col_vals = [k for k in list(df_block[col].unique())
@@ -49,9 +65,63 @@ def df_enum_categ_vars(df_block, col_names_categ, enum_dict, na_vals=['', np.nan
         
     write_enum_dict(enum_dict, na_vals)
     return df_block[col_names_categ]
+
+
+
+def read_replaceColVals_dict():
+    '''
+    reads the json files that contains the value->new_value mappings
+    and returns as a dictionary. If the dictionary doesn't exists,
+    the function creates one.
+    '''
+    colvals_path = os.path.join(get_path('FOLDER_COL_VAL_DICTS'), get_path('COL_VALS_REPLACE'))
+
+    if os.path.isfile(colvals_path):
+        with open(colvals_path, 'r') as f: 
+            return defaultdict(
+                lambda: {},
+                {k:defaultdict(lambda: np.nan,v) for k,v in json.load(f).items()}
+            )
+    else: 
+        return defaultdict(lambda: defaultdict(lambda: np.nan) )
+
+
+def write_replaceColVals_dict(colvals_dict):
+    '''
+    args:
+      colvals_dict: dictionary to save in the json format
+    '''
+    colvals_path = os.path.join(get_path('FOLDER_COL_VAL_DICTS'), get_path('COL_VALS_REPLACE'))
+
+    with open(colvals_path, 'w') as f:
+        json.dump(dict(colvals_dict), f, sort_keys=True, indent=4)
         
 
-def processBlock(
+def df_replaceColVals_vars(df, col_indices, str_vals=True, cont_vals=False): 
+    '''
+    Converts categorical values into enum valus and using the `enum_dict`.
+    If a given value is not in the `enum_dict`, creates a enum value and saves
+    over the existing `enum_dict`
+    '''   
+    assert (str_vals ^ cont_vals), "exactly one of the following arguments must be 'True': str_vals, cont_vals"
+    colvals_dict = read_replaceColVals_dict()
+
+    for c in col_indices:
+        colname = df.columns[c]
+        vals = df.iloc[:,c].dropna().unique()
+        temp_dict = colvals_dict[colname]
+        temp_dict.update({
+            k:k for k in vals[vals == vals.astype(str)] 
+            if k not in temp_dict
+            })
+
+        
+    write_replaceColVals_dict(colvals_dict)
+    return colvals_dict
+
+
+
+def process_block(
     df_block,
     col_names_categ,
     col_names_float,
@@ -94,9 +164,21 @@ def processBlock(
     
     
 
-def divideRepetitiveBlocks(
-    df,div_n,categ_cols,float_cols,derive_fields=[],null_fields=[],col_trim_begin=0, col_trim_end=0,lower_case=True
+def divide_repetitive_blocks(
+    df,div_n,
+    categ_cols,
+    float_cols,
+    derive_fields=[],
+    null_fields=[],
+    col_trim_begin=0,
+    col_trim_end=0,
+    lower_case=True
 ):
+    '''
+    takes the repitetive blocks in the raw data, process them and 
+    returns list of dataframes, each of which represent a processed
+    data of a block.
+    '''
     block_n = len(list(df.columns)) // 7
     cols_to_drop = set(range(block_n)) - set(categ_cols+float_cols)
     col_names = [k[col_trim_begin:len(k)-col_trim_end] for k in df.columns[:block_n]]
@@ -110,7 +192,7 @@ def divideRepetitiveBlocks(
     enum_dict = read_enum_dict()
 
     result = [
-        processBlock(
+        process_block(
             df.iloc[:,i*block_n:(i+1)*block_n],
             col_names_categ,
             col_names_float,

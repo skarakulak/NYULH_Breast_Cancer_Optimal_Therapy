@@ -4,7 +4,7 @@ import os
 import json
 
 
-def predCountryData(file_name='country_features.tab', overwrite=False):
+def pred_country_data(file_name='country_features.tab', overwrite=False):
     with open('paths.json', 'r') as f:
         paths = json.load(f)
     

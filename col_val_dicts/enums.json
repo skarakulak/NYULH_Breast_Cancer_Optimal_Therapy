@@ -1,0 +1,40 @@
+{
+    "Menopausal status": {
+        "postmenopausal": 2,
+        "premenopausal": 1
+    },
+    "Relative:": {
+        "brother": 16,
+        "daughter": 13,
+        "father": 10,
+        "half-sister": 8,
+        "maternal aunt": 5,
+        "maternal cousin": 7,
+        "maternal grandfather": 15,
+        "maternal grandmother": 4,
+        "maternal uncle": 12,
+        "mother": 3,
+        "other": 2,
+        "paternal aunt": 1,
+        "paternal cousin": 9,
+        "paternal grandfaterh": 14,
+        "paternal grandfather": 14,
+        "paternal grandmother": 6,
+        "paternal uncle": 17,
+        "sister": 8
+    },
+    "Unilateral or Bilateral": {
+        "bilateral": 1,
+        "unilateral": 2
+    },
+    "Vital status": {
+        "alive": 2,
+        "dead": 1
+    },
+    "relative_categ": {
+        "F": 4,
+        "M": 3,
+        "O": 1,
+        "P": 2
+    }
+}

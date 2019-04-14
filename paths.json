@@ -3,5 +3,7 @@
     "MAPPINGS": "categ_mappings",
     "GEN_DATA": "data_prep_results",
     "DATA_PREP_SCRIPTS": "data_prep_scripts",
+    "FOLDER_COL_VAL_DICTS": "col_val_dicts",
+    "COL_VALS_REPLACE": "col_vals_replace.json",
     "ENUM_DICT" : "enums.json"
 }

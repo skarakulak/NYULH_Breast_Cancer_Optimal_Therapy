@@ -1,0 +1,141 @@
+{
+    "1. Age at diagnosis.1": {
+        "40s": 45,
+        "50s": 55
+    },
+    "1. Age at diagnosis.2": {
+        "20s": 25,
+        "50, 80": 50,
+        "50s": 55,
+        "55-60": 55,
+        "60's": 65,
+        "60s": 65,
+        "65 (prostate), 68 (kidney)": 65,
+        "70s": 75,
+        "77 (colon) / 78 (prostate)": 77,
+        "late 50s": 58
+    },
+    "1. Age at diagnosis.3": {
+        "30s & 40s": 35,
+        "40/50's": 45,
+        "early 70s": 75
+    },
+    "2. Age at diagnosis.2": {
+        "30s": 35,
+        "50s": 55,
+        "60s": 65,
+        "70's": 75,
+        "70s": 75,
+        "80s": 85
+    },
+    "2. Age at diagnosis.3": {
+        "50's": 55
+    },
+    "3. Age at diagnosis.2": {
+        "40s": 45,
+        "50s": 55,
+        "70s": 75,
+        "72 (prostate) / 67 (melanoma)": 72,
+        "90s": 93
+    },
+    "4. Age at diagnosis.2": {
+        "70s": 75
+    },
+    "5. Age at diagnosis.2": {
+        "60s": 65,
+        "80s": 85
+    },
+    "6. Age at diagnosis.2": {
+        "60s": 65
+    },
+    "7. Age at diagnosis.2": {
+        "late 80s": 88
+    },
+    "Age at Menopause": {
+        "30s": 35,
+        "40s": 45,
+        "50+": 55,
+        "50s": 55,
+        "early 50s": 52,
+        "late 40s": 48,
+        "mid 50s": 55
+    },
+    "Age at menarche? ": {
+        "amenorrhea": "<np.nan>"
+    },
+    "Age when first smoked?": {
+        "20s": 25,
+        "socially": "<np.nan>",
+        "teens": 14
+    },
+    "Number of Packs/Day": {
+        "'occassionally'": 0.05,
+        "'social smoking'": 0.05,
+        "0.5 cig": 0.5,
+        "0.5-1": 0.75,
+        "1 pack/week": 0.15,
+        "1-2 cigs/day": 0.075,
+        "1-2/week": 0.25,
+        "1.5 packs/week": 0.25,
+        "1.5/day": 1.5,
+        "1/week": 0.15,
+        "1/wk": 0.15,
+        "15 cigs": 0.75,
+        "2 cigarettes": 0.1,
+        "2 cigs/day": 0.1,
+        "20/7": 0.15,
+        "3 cigarettes": 0.15,
+        "3 cigarrettes/day": 0.15,
+        "4 cigs/day": 0.2,
+        "4-5 cigarettes/day": 0.225,
+        "4-5 cigs/day": 0.225,
+        "40/7": 0.3,
+        "5 cigs/week": 0.35,
+        "6 cigs/day": 0.3,
+        "< .5": 0.3,
+        "< 0.5": 0.3,
+        "< 1": 0.75,
+        "<0.5": 0.3,
+        "<1": 0.75,
+        "<1 per week": 0.15,
+        ">1": 1.2,
+        "a couple of cigarettes some days in her twenties": 0,
+        "a few": 0.15,
+        "less than 1": 0.75,
+        "only 1 or 2 cigarette every few weeks": 0.01,
+        "social": 0.02,
+        "social smoker-varies": 0.02,
+        "socially": 0.02,
+        "socially (very seldom)": 0.01
+    },
+    "Number of years": {
+        "15-20": 17.5,
+        "19 on and off": 19,
+        "25 (on & off)": 25,
+        "3 months": 0.25,
+        "30 (on and off)": 30,
+        "30+": 33,
+        "30-35": 33,
+        "35-40": 37,
+        "40+": 42,
+        "40-45": 43,
+        "50+": 55,
+        "7, then 18": 25,
+        "< 1 year": 0.75,
+        "<1": 0.75,
+        "> 10": 13,
+        "a few yrs.": 2,
+        "occ": 0.5,
+        "only a few": 2,
+        "very little": 0.5
+    },
+    "Over past 6 years, how many mammograms did you have? ": {
+        "7+": 9,
+        ">5": 7,
+        "various": 5
+    },
+    "Weight at 18 yrs of age": {
+        "110-115": 113,
+        "120-130": 125
+    }
+}
