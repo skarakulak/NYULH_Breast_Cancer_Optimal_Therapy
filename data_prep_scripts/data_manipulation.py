@@ -68,59 +68,6 @@ def df_enum_categ_vars(df_block, col_names_categ, enum_dict, na_vals=['', np.nan
 
 
 
-def read_replaceColVals_dict():
-    '''
-    reads the json files that contains the value->new_value mappings
-    and returns as a dictionary. If the dictionary doesn't exists,
-    the function creates one.
-    '''
-    colvals_path = os.path.join(get_path('FOLDER_COL_VAL_DICTS'), get_path('COL_VALS_REPLACE'))
-
-    if os.path.isfile(colvals_path):
-        with open(colvals_path, 'r') as f: 
-            return defaultdict(
-                lambda: {},
-                {k:defaultdict(lambda: np.nan,v) for k,v in json.load(f).items()}
-            )
-    else: 
-        return defaultdict(lambda: defaultdict(lambda: np.nan) )
-
-
-def write_replaceColVals_dict(colvals_dict):
-    '''
-    args:
-      colvals_dict: dictionary to save in the json format
-    '''
-    colvals_path = os.path.join(get_path('FOLDER_COL_VAL_DICTS'), get_path('COL_VALS_REPLACE'))
-
-    with open(colvals_path, 'w') as f:
-        json.dump(dict(colvals_dict), f, sort_keys=True, indent=4)
-        
-
-def df_replaceColVals_vars(df, col_indices, str_vals=True, cont_vals=False): 
-    '''
-    Converts categorical values into enum valus and using the `enum_dict`.
-    If a given value is not in the `enum_dict`, creates a enum value and saves
-    over the existing `enum_dict`
-    '''   
-    assert (str_vals ^ cont_vals), "exactly one of the following arguments must be 'True': str_vals, cont_vals"
-    colvals_dict = read_replaceColVals_dict()
-
-    for c in col_indices:
-        colname = df.columns[c]
-        vals = df.iloc[:,c].dropna().unique()
-        temp_dict = colvals_dict[colname]
-        temp_dict.update({
-            k:k for k in vals[vals == vals.astype(str)] 
-            if k not in temp_dict
-            })
-
-        
-    write_replaceColVals_dict(colvals_dict)
-    return colvals_dict
-
-
-
 def process_block(
     df_block,
     col_names_categ,
@@ -208,3 +155,99 @@ def divide_repetitive_blocks(
         for i in range(div_n)
     ]
     return result
+
+
+
+def read_replaceColVals_dict(str_vals=True, cont_vals=False):
+    '''
+    reads the json files that contains the value->new_value mappings
+    and returns as a dictionary. If the dictionary doesn't exists,
+    the function creates one.
+    '''
+    assert (str_vals ^ cont_vals), "exactly one of the following arguments must be 'True': str_vals, cont_vals"
+    
+    colvals_path = os.path.join(
+        get_path('FOLDER_COL_VAL_DICTS'), 
+        get_path('COL_VALS_REPLACE_STR' if str_vals else 'COL_VALS_REPLACE_FLOAT_OUTLIERS')
+        )
+
+    if os.path.isfile(colvals_path):
+        with open(colvals_path, 'r') as f: 
+            return defaultdict(
+                lambda: {},
+                {k:defaultdict(lambda: np.nan,v) for k,v in json.load(f).items()}
+            )
+    else: 
+        return defaultdict(lambda: defaultdict(lambda: np.nan) )
+
+
+def write_replaceColVals_dict(colvals_dict, str_vals=True, cont_vals=False):
+    '''
+    args:
+      colvals_dict: dictionary to save in the json format
+    '''
+    assert (str_vals ^ cont_vals), "exactly one of the following arguments must be 'True': str_vals, cont_vals"
+
+    colvals_path = os.path.join(
+        get_path('FOLDER_COL_VAL_DICTS'), 
+        get_path('COL_VALS_REPLACE_STR' if str_vals else 'COL_VALS_REPLACE_FLOAT_OUTLIERS')
+        )
+
+    with open(colvals_path, 'w') as f:
+        json.dump(dict(colvals_dict), f, sort_keys=True, indent=4)
+        
+
+def df_replaceColVals_vars(df, col_indices=None, str_vals=True, cont_vals=False): 
+    '''
+    Converts categorical values into enum valus and using the `enum_dict`.
+    If a given value is not in the `enum_dict`, creates a enum value and saves
+    over the existing `enum_dict`
+    '''   
+    assert (str_vals ^ cont_vals), "exactly one of the following arguments must be 'True': str_vals, cont_vals"
+    
+    if str_vals:
+        colvals_dict = read_replaceColVals_dict()
+
+        for c in col_indices:
+            colname = df.columns[c]
+            vals = df.iloc[:,c].dropna().unique()
+            temp_dict = colvals_dict[colname]
+            temp_dict.update({
+                k:k for k in vals[vals == vals.astype(str)] 
+                if k not in temp_dict
+                })
+
+        
+        write_replaceColVals_dict(colvals_dict)
+
+        for col in colvals_dict:
+            for k,v in colvals_dict[col].items():
+                if v == '<np.nan>': colvals_dict[col][k]=np.nan
+        return colvals_dict
+
+    else:
+        colvals_dict = read_replaceColVals_dict(str_vals=False, cont_vals=True)
+
+        for ii, (a,b) in enumerate(df.dtypes.iteritems()):
+            if b == np.float64 : 
+                vals = df[a].dropna().values 
+                outliers = vals[np.abs(vals - np.mean(vals)) > 4 * np.std(vals)]
+                if len(outliers) > 0: 
+                    colvals_dict[a].update({
+                        str(k):k for k in outliers if str(k) not in colvals_dict[a]
+                        })
+
+        
+        write_replaceColVals_dict(colvals_dict,str_vals=False, cont_vals=True)
+        cols_to_del = []
+        for col in colvals_dict:
+            vals_to_del = []
+            for k,v in colvals_dict[col].items():
+                if v == float(k): vals_to_del.append(k)
+            for k in vals_to_del: del colvals_dict[col][k]
+            if len(colvals_dict[col])==0: cols_to_del.append(col)
+        for k in cols_to_del: del colvals_dict[k]
+        
+        return colvals_dict
+
+
