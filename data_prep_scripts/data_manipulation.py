@@ -29,7 +29,7 @@ def read_enum_dict():
     else: 
         return defaultdict(lambda: defaultdict(lambda: 0) )
 
-def write_enum_dict(enum_dict, na_vals=['', np.nan,'---']):
+def write_enum_dict(enum_dict, na_vals=['', np.nan,'---','NaN']):
     '''
     args:
       enum_dict: dictionary to save in the json format
@@ -38,15 +38,21 @@ def write_enum_dict(enum_dict, na_vals=['', np.nan,'---']):
     '''
     enum_path = os.path.join(get_path('FOLDER_COL_VAL_DICTS'), get_path('ENUM_DICT'))
 
+    for k,v in enum_dict.items():
+        for n in na_vals: 
+            if n in v: v.pop(n)
+        del_keys = []
+        for k_ in v.keys():
+            if pd.isnull(k_): del_keys.append(k_)
+        for dk in del_keys: del enum_dict[k][dk]
+        if len(k)==0: enum_dict.pop(k)
+
     with open(enum_path, 'w') as f:
-        for v in enum_dict.values():
-            for n in na_vals: 
-                if n in v: v.pop(np.nan)
-        json.dump(dict(enum_dict), f, sort_keys=True, indent=4)
+        json.dump(dict(enum_dict), f, indent=4) # sort_keys=True, indent=4)
 
 
     
-def df_enum_categ_vars(df_block, col_names_categ, enum_dict, na_vals=['', np.nan,'---']): 
+def df_enum_categ_vars(df_block, col_names_categ, enum_dict, na_vals=['', np.nan,'---','NaN']): 
     '''
     Converts categorical values into enum valus and using the `enum_dict`.
     If a given value is not in the `enum_dict`, creates a enum value and saves
@@ -62,8 +68,9 @@ def df_enum_categ_vars(df_block, col_names_categ, enum_dict, na_vals=['', np.nan
         enum_dict[col].update({v:ii for ii,v in enumerate(col_vals,start=max_enum+1)})
         
         df_block[col]=df_block[col].apply(lambda x: enum_dict[col][x])
-        
+    
     write_enum_dict(enum_dict, na_vals)
+
     return df_block[col_names_categ]
 
 
@@ -78,17 +85,19 @@ def process_block(
     col_trim_begin=0, 
     col_trim_end=0,
     lower_case=True,
-    na_vals = ['', np.nan,'---'],
+    na_vals = ['', np.nan,'---','NaN'],
     derive_fields=[],
     null_fields=[]
 ):
+    if df_block.isnull().all().all(): return 
+
     df_block.columns = [k[col_trim_begin:len(k)-col_trim_end] for k in df_block.columns]
     colnames_categ_end = col_names_categ+col_names_categ_d
     colnames_float_end = col_names_float+col_names_float_d
     col_names_drop= set(list(df_block.columns)) - set(colnames_categ_end+colnames_float_end)
-    na_vals.append('-'*(col_trim_begin+col_trim_end+1))
+    #na_vals.append('-'*(col_trim_begin+col_trim_end+1))
     
-    df_block[col_names_float]=df_block[col_names_float].apply(pd.to_numeric,errors='coerce')
+    df_block[col_names_float]=df_block[col_names_float].apply(pd.to_numeric,errors='coerce',result_type='broadcast')
     
     for field in null_fields:
         df_block[f'{field}_null']  = df_block[field].isna().astype('float')    
@@ -97,7 +106,8 @@ def process_block(
     
     if lower_case:
         df_block[col_names_categ]=df_block[col_names_categ].apply(
-            lambda x: x.str.lower() if(x.dtype == 'object') else na_vals
+            lambda x: x.str.lower() if(x.dtype == 'object') else np.nan,
+            result_type='broadcast'
         )
     
     # derives given field if given any 
@@ -126,7 +136,7 @@ def divide_repetitive_blocks(
     returns list of dataframes, each of which represent a processed
     data of a block.
     '''
-    block_n = len(list(df.columns)) // 7
+    block_n = len(list(df.columns)) // div_n
     cols_to_drop = set(range(block_n)) - set(categ_cols+float_cols)
     col_names = [k[col_trim_begin:len(k)-col_trim_end] for k in df.columns[:block_n]]
     col_names_categ = [col_names[k] for k in categ_cols]
