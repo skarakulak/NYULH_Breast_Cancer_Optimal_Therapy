@@ -21,7 +21,9 @@
         "paternal grandfather": 14,
         "paternal grandmother": 6,
         "paternal uncle": 17,
-        "sister": 8
+        "sister": 8,
+        "son": 18,
+        "half-brother": 16
     },
     "Unilateral or Bilateral": {
         "bilateral": 1,
@@ -29,12 +31,94 @@
     },
     "Vital status": {
         "alive": 2,
-        "dead": 1
+        "dead": 1,
+        "2nd cousin": 0
     },
     "relative_categ": {
         "F": 4,
         "M": 3,
         "O": 1,
         "P": 2
+    },
+    "Type of Cancer:": {
+        "colon": 1,
+        "other": 2,
+        "prostate": 3,
+        "brain": 4,
+        "lung": 5,
+        "liver": 6,
+        "uterine": 7,
+        "bone": 8
+    },
+    "Type:": {
+        "other": 1,
+        "in vitro": 2,
+        "clomid": 3,
+        "progesterone": 4,
+        "hcg": 5,
+        "pergonal": 6
+    },
+    "Infertility treatment duration: ": {
+        "< 3 months": 1,
+        "7 months - 1 year": 2,
+        "3-6 months": 3,
+        ">1 year": 4
+    },
+    "Histology (choice=Atypicl Hyplasia)": {
+        "unchecked": 1,
+        "checked": 2
+    },
+    "Histology (choice=Lobular Carcinoma In Situ)": {
+        "unchecked": 1,
+        "checked": 2
+    },
+    "Histology (choice=Other)": {
+        "unchecked": 1,
+        "checked": 2
+    },
+    "Type of Cancer (excluding breast cancer)": {
+        "other": 1,
+        "ovarian": 2,
+        "bone": 3,
+        "melanoma": 4,
+        "hodgkin lymphoma": 5,
+        "uterine": 6,
+        "lung": 7,
+        "non-hodgkins lymphoma": 8,
+        "brain": 9,
+        "colon": 10,
+        "liver": 11
+    },
+    "Treatment: (choose all that apply) (choice=No treatment)": {
+        "unchecked": 1,
+        "checked": 2
+    },
+    "Treatment: (choose all that apply) (choice=Surgery)": {
+        "unchecked": 1,
+        "checked": 2
+    },
+    "Treatment: (choose all that apply) (choice=Chemotherapy)": {
+        "unchecked": 1,
+        "checked": 2
+    },
+    "Treatment: (choose all that apply) (choice=Radiation therapy)": {
+        "unchecked": 1,
+        "checked": 2
+    },
+    "Treatment: (choose all that apply) (choice=Other)": {
+        "unchecked": 1,
+        "checked": 2
+    },
+    "sport_activity": {
+        "zero": 1,
+        "20-59 mins": 2,
+        "4-6 hrs": 3,
+        "1 hr": 4,
+        "1-4 min": 5,
+        "5-19 mins": 6,
+        "1-1.5 hr": 7,
+        "2-3 hrs": 8,
+        "+11 hrs": 9,
+        "7-10 hrs": 10
     }
 }

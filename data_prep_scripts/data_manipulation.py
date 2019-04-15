@@ -23,7 +23,7 @@ def read_enum_dict():
     if os.path.isfile(enum_path):
         with open(enum_path, 'r') as f: 
             return defaultdict(
-                lambda: {},
+                lambda: defaultdict(lambda: 0),
                 {k:defaultdict(lambda: 0,v) for k,v in json.load(f).items()}
             )
     else: 
@@ -77,8 +77,12 @@ def df_enum_categ_vars(df_block, col_names_categ, enum_dict, na_vals=['', np.nan
 
 def process_block(
     df_block,
+    col_names,
     col_names_categ,
     col_names_float,
+    colnames_categ_final,
+    colnames_float_final,
+    col_names_drop,
     enum_dict=None,
     col_names_categ_d=[],
     col_names_float_d=[], 
@@ -90,17 +94,14 @@ def process_block(
     null_fields=[]
 ):
     if df_block.isnull().all().all(): return 
+    df_block = df_block.copy()
 
-    df_block.columns = [k[col_trim_begin:len(k)-col_trim_end] for k in df_block.columns]
-    colnames_categ_end = col_names_categ+col_names_categ_d
-    colnames_float_end = col_names_float+col_names_float_d
-    col_names_drop= set(list(df_block.columns)) - set(colnames_categ_end+colnames_float_end)
-    #na_vals.append('-'*(col_trim_begin+col_trim_end+1))
+    df_block.columns = col_names
     
     df_block[col_names_float]=df_block[col_names_float].apply(pd.to_numeric,errors='coerce',result_type='broadcast')
     
     for field in null_fields:
-        df_block[f'{field}_null']  = df_block[field].isna().astype('float')    
+        df_block[f'{field}_null']  = df_block[field].isna().astype('float') 
     
     if not enum_dict: enum_dict = read_enum_dict()
     
@@ -110,12 +111,12 @@ def process_block(
             result_type='broadcast'
         )
     
-    # derives given field if given any 
+    # derives given fields, if given any 
     if derive_fields:
         for ii,f in enumerate(derive_fields):
             df_block[f[1]] = df_block.apply(f[0], axis=1)
                 
-    df_block[colnames_categ_end] = df_enum_categ_vars(df_block,colnames_categ_end, enum_dict, na_vals)
+    df_block[colnames_categ_final] = df_enum_categ_vars(df_block,colnames_categ_final, enum_dict, na_vals)
     df_block.drop(col_names_drop,axis=1,inplace=True)
     return df_block
     
@@ -137,22 +138,47 @@ def divide_repetitive_blocks(
     data of a block.
     '''
     block_n = len(list(df.columns)) // div_n
-    cols_to_drop = set(range(block_n)) - set(categ_cols+float_cols)
-    col_names = [k[col_trim_begin:len(k)-col_trim_end] for k in df.columns[:block_n]]
+    colnames_org = df.columns[:block_n]
+
+    assert type(col_trim_begin) == type(col_trim_end), "types of the following arguments should be the same: 'col_trim_begin', 'col_trim_end'"
+    if isinstance(col_trim_begin,list) and isinstance(col_trim_end,list):
+        col_names = []
+        for c_ind, (tb, te) in enumerate(zip(col_trim_begin,col_trim_end)):
+            org_cn = colnames_org[c_ind]
+            col_names.append(org_cn[tb:len(org_cn)-te] )
+    else:
+        col_names = [k[col_trim_begin:len(k)-col_trim_end] for k in colnames_org]
+
     col_names_categ = [col_names[k] for k in categ_cols]
     col_names_float = [col_names[k] for k in float_cols]
+
+
+    null_fields_add = [
+        k for k in col_names_float if k not in null_fields
+    ]
+    if null_fields_add: null_fields += null_fields_add
+
     if derive_fields:
         col_names_categ_d = [k[1] for k in derive_fields if k[2]=='categ']
         col_names_float_d = [k[1] for k in derive_fields if k[2]=='float']    
+    else: 
+        col_names_categ_d, col_names_float_d = [],[]
 
+    colnames_categ_final = col_names_categ+col_names_categ_d
+    colnames_float_final = col_names_float+col_names_float_d
+    col_names_drop= set(list(col_names)) - set(colnames_categ_final+colnames_float_final)
 
     enum_dict = read_enum_dict()
 
     result = [
         process_block(
             df.iloc[:,i*block_n:(i+1)*block_n],
+            col_names,
             col_names_categ,
             col_names_float,
+            colnames_categ_final,
+            colnames_float_final,
+            col_names_drop,
             enum_dict=enum_dict,
             col_names_categ_d=col_names_categ_d,
             col_names_float_d=col_names_float_d, 
@@ -166,6 +192,52 @@ def divide_repetitive_blocks(
     ]
     return result
 
+
+def process_single_cols(
+    df,
+    colname,
+    categ=True,
+    lower_case=True
+):
+    '''
+    takes a block of repitetive column in the raw data, process them 
+    and returns list of dataframes, each of which represent a processed
+    column of in the given dataframe.
+    '''
+    block_n = len(list(df.columns)) // df.shape[1]
+    colnames_org = [colname]
+
+    enum_dict = read_enum_dict()
+
+    if categ:
+        result = [
+            process_block(
+                df.iloc[:,[i]],
+                colnames_org,
+                colnames_org,
+                [],
+                colnames_org,
+                [],
+                [],
+                enum_dict=enum_dict
+            )
+            for i in range( df.shape[1])
+        ]
+    else:
+        result = [
+            process_block(
+                df.iloc[:,[i]],
+                colnames_org,
+                [],
+                colnames_org,
+                [],
+                colnames_org,
+                [],
+                enum_dict=enum_dict
+            )
+            for i in range( df.shape[1])
+        ]
+    return result
 
 
 def read_replaceColVals_dict(str_vals=True, cont_vals=False):
