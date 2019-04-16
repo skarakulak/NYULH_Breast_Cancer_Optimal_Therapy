@@ -3,8 +3,9 @@ import numpy as np
 import os
 import json
 
+from data_prep_scripts.data_manipulation import divide_repetitive_blocks
 
-def pred_country_data(file_name='country_features.tab', overwrite=False):
+def prep_country_data(file_name='country_features.tab', overwrite=False):
     with open('paths.json', 'r') as f:
         paths = json.load(f)
     
@@ -44,3 +45,54 @@ def pred_country_data(file_name='country_features.tab', overwrite=False):
         return country_data
     else: 
         return pd.read_csv(gen_data_path, sep='\t')
+
+def get_country_of_origin_data(df):
+    country_features = prep_country_data().applymap(lambda s:s.lower() if type(s) == str else s).drop_duplicates()
+    country_features = country_features[['MEDDATA', 'income_grp',
+           'continent', 'subregion','Pop. Density (per sq. mi.)',
+           'Literacy (%)', 'Phones (per 1000)', 'Birthrate', 'Deathrate',
+           'DevelopmentLevel', 'imr20052010',
+           'AvgYrsSchool10', 'GDPPerCap2010', 'WHR score','HDI2013',
+           'country_longitude', 'country_latitude']]
+    country_features.columns = ['country_of_origin']+list(country_features.columns)[1:]
+
+
+    df_f = df[['Country of Origin for Father']].merge(
+        country_features,left_on='Country of Origin for Father', 
+        right_on='country_of_origin',
+        how='left'
+    ).drop('Country of Origin for Father', axis=1)
+    df_f = df_f.add_prefix('f.')
+
+    df_m = df[['Country of Origin for Mother']].merge(
+        country_features,left_on='Country of Origin for Mother', 
+        right_on='country_of_origin',
+        how='left'
+    ).drop('Country of Origin for Mother', axis=1)
+    df_m = df_m.add_prefix('m.')
+
+    df_p = df[['Country of Origin for Patient']].merge(
+        country_features,left_on='Country of Origin for Patient', 
+        right_on='country_of_origin',
+        how='left'
+    ).drop('Country of Origin for Patient', axis=1)
+    df_p = df_p.add_prefix('p.')
+
+
+    df_concat = pd.concat([df_p,df_m,df_f],ignore_index=True,axis=1)
+    df_concat.columns = list(df_p.columns)+list(df_m.columns)+list(df_f.columns)
+
+    result = divide_repetitive_blocks(
+        df_concat,
+        3,
+        categ_cols = [0,1,2,3,9],
+        float_cols = [4,5,6,7,8,10,11,12,13,14,15,16],
+        col_trim_begin=2,
+        col_trim_end=0,
+        lower_case=True,
+        group_values=True,
+        group_min_count = 150,
+        null_fields = ['country_of_origin']
+    )
+
+    return result 

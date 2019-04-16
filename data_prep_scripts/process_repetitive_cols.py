@@ -95,4 +95,14 @@ def get_repetitive_cols(medData):
             categ=True
         )
     )
+
+    result.append(
+        process_single_cols(
+            medData.iloc[:,357:364],
+            'drug_allergy',
+            categ=True,
+            group_values=True,
+            group_min_count = 50
+        )
+    )
     return result

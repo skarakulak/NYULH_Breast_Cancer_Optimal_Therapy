@@ -5,9 +5,7 @@ import json
 from collections import defaultdict
 
 def get_path(x):
-    '''
-    returns the path of the given file/folder from path.json file
-    '''
+    ''' returns the path of the given file/folder from path.json file'''
     with open('paths.json', 'r') as f:
         enum_path = json.load(f)[x]
     return enum_path
@@ -48,31 +46,85 @@ def write_enum_dict(enum_dict, na_vals=['', np.nan,'---','NaN']):
         if len(k)==0: enum_dict.pop(k)
 
     with open(enum_path, 'w') as f:
-        json.dump(dict(enum_dict), f, indent=4) # sort_keys=True, indent=4)
+        json.dump(dict(enum_dict), f, sort_keys=True, indent=4)
 
+def cond_add_to_enumdict(val,col,enum_dict,na_vals):
+    '''returns a bool indicating whether a new key should be added  
+    to the enum_dict for 'val' '''
+    return (val not in na_vals) and (val not in enum_dict[col].keys()) and (not pd.isnull(val))
 
-    
-def df_enum_categ_vars(df_block, col_names_categ, enum_dict, na_vals=['', np.nan,'---','NaN']): 
+def add_to_enumdict_with_threshold(
+    pd_series, enum_dict, col, na_vals, group_min_count, max_enum=-1, save_oth_vals=True):
+    ''' Adds categorical values to the enum_dict, that occured more 
+    times than the given threshold. Values that do not pass the given 
+    threshold are mapped to the value 1. '''
+    if max_enum == -1:
+        max_enum = 0 if len(enum_dict[col]) == 0 else max(enum_dict[col].values())
+    val_counts = pd_series.value_counts() > group_min_count
+    vals_to_add = [
+        val for val in val_counts.index.tolist() if cond_add_to_enumdict(val,col,enum_dict,na_vals)]
+    # if all values occur more times than the given threshold value,
+    # than we start indexing with 0, otherwise with 1.    
+    if (val_counts[vals_to_add]).all():
+        enum_dict[col].update({v:ii for ii,v in enumerate(vals_to_add,start=max_enum+1)})
+    else:
+        current_enum = max(max_enum,1)
+        for ind, val in (val_counts[vals_to_add]).items():
+            if val: 
+                current_enum += 1
+                enum_dict[col][ind] = current_enum
+            elif save_oth_vals:
+                enum_dict[col][ind] = 1
+    return enum_dict
+
+def df_enum_categ_vars(
+    df_block, 
+    col_names_categ,
+    enum_dict, 
+    na_vals=['', np.nan,'---','NaN'],
+    group_values=False,
+    group_min_count=50,
+    save_oth_vals = False
+    ): 
     '''
     Converts categorical values into enum valus and using the `enum_dict`.
     If a given value is not in the `enum_dict`, creates a enum value and saves
     over the existing `enum_dict`
     '''   
-    for col in col_names_categ:
+    for col in col_names_categ:        
         max_enum = 0 if len(enum_dict[col]) == 0 else max(enum_dict[col].values())
-        col_vals = [k for k in list(df_block[col].unique())
-                    if k not in na_vals 
-                    and k not in enum_dict[col].keys() 
-                    and not pd.isnull(k)
-                   ]
-        enum_dict[col].update({v:ii for ii,v in enumerate(col_vals,start=max_enum+1)})
-        
+
+        if not group_values:
+            col_vals = [k for k in list(df_block[col].unique()) if cond_add_to_enumdict(k,col,enum_dict,na_vals)]
+            enum_dict[col].update({v:ii for ii,v in enumerate(col_vals,start=max_enum+1)})
+        else:
+            enum_dict = add_to_enumdict_with_threshold(
+                df_block[col], enum_dict, col, na_vals, group_min_count, max_enum, save_oth_vals=save_oth_vals)
+
+
         df_block[col]=df_block[col].apply(lambda x: enum_dict[col][x])
     
     write_enum_dict(enum_dict, na_vals)
 
     return df_block[col_names_categ]
 
+
+def enums_group(
+    df,
+    colname,
+    enum_dict,
+    group_min_count=50,
+    na_vals=['', np.nan,'---','NaN'],
+    save_oth_vals = True
+    ):
+    '''
+    prepares enums_dict for a block of repitetive columns in the raw data.
+    NaN values are mapped to '0', and the values whose counts are less then
+    'group_min_count' are assigned to 1.
+    '''
+    enum_dict = add_to_enumdict_with_threshold(
+        df.unstack(), enum_dict, colname, na_vals, group_min_count,save_oth_vals=save_oth_vals)
+    return enum_dict
 
 
 def process_block(
@@ -130,7 +182,9 @@ def divide_repetitive_blocks(
     null_fields=[],
     col_trim_begin=0,
     col_trim_end=0,
-    lower_case=True
+    lower_case=True,
+    group_values = False,
+    group_min_count = 50
 ):
     '''
     takes the repitetive blocks in the raw data, process them and 
@@ -170,6 +224,17 @@ def divide_repetitive_blocks(
 
     enum_dict = read_enum_dict()
 
+    # temp implementation for country of origin features
+    if group_values: 
+        for col in col_names_categ:
+            cols_to_group = []
+            for dfcol in df.columns:
+                assert isinstance(col_trim_begin,int) and isinstance(col_trim_end,int)
+                if dfcol[col_trim_begin:len(dfcol)-col_trim_end] == col:
+                    cols_to_group.append(dfcol)
+
+            enum_dict = enums_group(df[cols_to_group],col,enum_dict,group_min_count)    
+
     result = [
         process_block(
             df.iloc[:,i*block_n:(i+1)*block_n],
@@ -197,7 +262,9 @@ def process_single_cols(
     df,
     colname,
     categ=True,
-    lower_case=True
+    lower_case=True,
+    group_values = False,
+    group_min_count = 50
 ):
     '''
     takes a block of repitetive column in the raw data, process them 
@@ -208,6 +275,8 @@ def process_single_cols(
     colnames_org = [colname]
 
     enum_dict = read_enum_dict()
+    if group_values: 
+        enum_dict = enums_group(df,colname,enum_dict,group_min_count)
 
     if categ:
         result = [
@@ -238,6 +307,31 @@ def process_single_cols(
             for i in range( df.shape[1])
         ]
     return result
+
+
+def process_remaining_categ_cols(
+    df,
+    group_values = True,
+    group_min_count = 50
+):
+    '''
+    takes a block of repitetive column in the raw data, process them 
+    and returns list of dataframes, each of which represent a processed
+    column of in the given dataframe.
+    '''
+    enum_dict = read_enum_dict()
+    result = df_enum_categ_vars(
+        df.copy(), 
+        list(df.columns),
+        enum_dict, 
+        na_vals=['', np.nan,'---','NaN'],
+        group_values=True,
+        group_min_count=50,
+        save_oth_vals = True
+    )
+    return result
+
+
 
 
 def read_replaceColVals_dict(str_vals=True, cont_vals=False):
