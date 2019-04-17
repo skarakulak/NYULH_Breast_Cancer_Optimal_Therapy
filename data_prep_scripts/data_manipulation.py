@@ -163,7 +163,7 @@ def process_block(
             result_type='broadcast'
         )
     
-    # derives given fields, if given any 
+    # derives given fields, if given any (we derive only categ fields so far)
     if derive_fields:
         for ii,f in enumerate(derive_fields):
             df_block[f[1]] = df_block.apply(f[0], axis=1)
@@ -234,9 +234,14 @@ def divide_repetitive_blocks(
                     cols_to_group.append(dfcol)
 
             enum_dict = enums_group(df[cols_to_group],col,enum_dict,group_min_count)    
+    
+    null_fields_n = [f'{k}_null' for k in null_fields]
+    sep_fields = lambda x: (
+        x[colnames_categ_final], x[colnames_float_final+null_fields_n]
+        ) if isinstance(x, pd.DataFrame) else x
 
     result = [
-        process_block(
+        sep_fields(process_block(
             df.iloc[:,i*block_n:(i+1)*block_n],
             col_names,
             col_names_categ,
@@ -252,7 +257,7 @@ def divide_repetitive_blocks(
             lower_case=True,
             derive_fields=derive_fields,
             null_fields=null_fields
-        )
+        ))
         for i in range(div_n)
     ]
     return result
@@ -292,6 +297,7 @@ def process_single_cols(
             )
             for i in range( df.shape[1])
         ]
+        return [(k,None) for k in result]
     else:
         result = [
             process_block(
@@ -306,7 +312,8 @@ def process_single_cols(
             )
             for i in range( df.shape[1])
         ]
-    return result
+        return [(None,k) for k in result]
+
 
 
 def process_remaining_categ_cols(
