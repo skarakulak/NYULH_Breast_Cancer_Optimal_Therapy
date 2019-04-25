@@ -41,7 +41,7 @@ def div_cluster(coor,cls_labels, clus_id_div = 1, num_of_clus = 2, n_neighbors =
     return labels_temp
 
 
-def prep_report(df_MI_X, medData_float,df_corr,train_ind, dummy_cols,target_cols, quantile_1 =.125, quantile_2 = .875 ):
+def prep_report(df_MI_X, medData_float,df_corr,train_ind, dummy_cols,target_cols, discrete_flag,dummy_cols_map, quantile_1 =.125, quantile_2 = .875 ):
     report_df = pd.DataFrame(index = df_MI_X.columns)
     t_float_vars = medData_float.iloc[train_ind]
     for ii,clus in enumerate(target_cols):
@@ -67,12 +67,13 @@ def prep_report(df_MI_X, medData_float,df_corr,train_ind, dummy_cols,target_cols
             q_bool = (
                 (t_float_vars[f_col]>=report_df.loc[f_col,quartile_cols[0]]) &(t_float_vars[f_col]<=report_df.loc[f_col,quartile_cols[1]])
             ).values
-            np_q_perc[f_idx] = (q_bool & (df_corr[clus]==1).values).sum() / q_bool.sum()
+            qbs = q_bool.sum()
+            np_q_perc[f_idx] = ((q_bool & (df_corr[clus]==1).values).sum() / qbs ) if qbs>0 else -99
         report_df[clus+'_(%)Percentile'] = np_q_perc
     report_df['categ_long'] = pd.Series([dummy_cols_map[k] if k in dummy_cols_map else '-' for k in report_df.index ],index=report_df.index)
     return report_df
 
-def rep_prep_report(df_corr,rep_cols,target_cols,quantile_1 =.25, quantile_2 = .75):
+def rep_prep_report(df_corr,rep_cols,target_cols,train_ind, categs_json, quantile_1 =.25, quantile_2 = .75):
     exist_cond = lambda x: isinstance(x,pd.DataFrame) and x.shape[1]>0 
     rep_report_df = None
     rep_dummy_cols_map = {}
