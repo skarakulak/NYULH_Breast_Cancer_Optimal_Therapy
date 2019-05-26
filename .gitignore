@@ -6,4 +6,8 @@ sil.ipynb
 tem.csv
 *.ipynb_checkpoints*
 Untitled.ipynb
-
+*.pth
+model_params.pth
+Untitled1.ipynb
+tree.dot
+notes.txt

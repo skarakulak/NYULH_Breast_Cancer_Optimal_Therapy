@@ -6,24 +6,128 @@ from sklearn.neighbors import kneighbors_graph
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.feature_selection import mutual_info_regression
 from sklearn.metrics import adjusted_mutual_info_score, mutual_info_score
+import re
 
 
 colors = np.array([x for x in 'bgrcmybgrcmybgrcmybgrcmybgrcmy'])
 colors = np.hstack([colors] * 100 + ['k'])
 
-def plot_clusters(coordinates, labels, m_y):
-    fig = plt.figure(figsize=(16,8))
-    ax = fig.add_subplot(121)
-    for i in set(labels):
-        coor = np.mean(coordinates[labels==i,:],axis=0)
-        ax.text(coor[0],coor[1], str(i), ha='center', va='center')
 
-    ax.scatter(coordinates[:,0], coordinates[:,1],alpha = 0.10, c =colors[labels].tolist())
-    
-    ax = fig.add_subplot(122)
-    m_y = m_y.detach().numpy() if isinstance(m_y,torch.Tensor) else m_y
-    ax.scatter(coordinates[:,0], coordinates[:,1],alpha = 0.20, c = ['c' if k==0 else 'r' for k in m_y ])
+def extract_num(s):
+    s=str(s)
+    t = re.search(r'\d+', s)
+    return -1 if t is None else int(t.group())
+
+def transform_vals(title,df_corr=None,categs_json=None):
+    t_dict = {v:k for k,v in categs_json[title].items()}
+    return np.array([t_dict[k] if k in t_dict else 'na' for k in df_corr[title].astype('int')])
+
+def plot_clusters(coordinates, labels,alpha=.20):
+    fig = plt.figure(figsize=(8,8))
+    ax = fig.add_subplot(111)
+    ax.set_title('Clusters');  ax.set_xticklabels([]); ax.set_yticklabels([])
+    for i in set(labels) - set([-1]):
+        lab_idx = (labels==i)
+        coor = np.mean(coordinates[lab_idx,:],axis=0)
+        ax.text(coor[0],coor[1], str(i), ha='center', va='center')
+        ax.scatter(coordinates[lab_idx,0], coordinates[lab_idx,1],alpha = alpha)
+
     plt.show()
+
+def plot_clusters_w_feat_plot(coordinates, labels, alpha=.15,medData=None, *args):
+    nplots = len(args)+1
+    nrows = nplots//2 + 1
+    ncols = nplots if nplots < 3 else 2
+    plot_ind = 1
+
+    fig = plt.figure(figsize=(ncols*11,nrows*8))
+    ax = fig.add_subplot(nrows, ncols, plot_ind); plot_ind +=1 
+    ax.set_title('Clusters');  ax.set_xticklabels([]); ax.set_yticklabels([])
+    colors = plt.cm.tab10(np.linspace(0, 1, len(set(labels))))
+    for ii,i in enumerate(set(labels) - set([-1])):
+        lab_idx = (labels==i)
+        coor = np.mean(coordinates[lab_idx,:],axis=0)
+        ax.text(coor[0],coor[1], str(i), ha='center', va='center')
+        ax.scatter(coordinates[lab_idx,0], coordinates[lab_idx,1],alpha = alpha,color=colors[ii])
+
+    for title in args:
+        if medData[title].dtype == np.object:
+            ax = fig.add_subplot(nrows, ncols, plot_ind); plot_ind +=1 
+            ax.set_title(title); ax.set_xticklabels([]); ax.set_yticklabels([])
+        
+            m_y = medData[title]
+            smy = set(m_y)
+            n_nums = len(set([extract_num(k) for k in smy]) - set([-1]))
+            if len(smy)<4: t_cmap=plt.cm.tab10
+            elif len(smy)<6: t_cmap=plt.cm.hsv
+            elif n_nums>5: t_cmap = plt.cm.cool
+            else: t_cmap=plt.cm.tab10
+            colors = t_cmap(np.linspace(0, 1, len(smy)))
+
+            for ii,i in enumerate(sorted(map(str,set(m_y)), key = lambda x: (extract_num(x),x))):
+                lab_idx = (m_y==i)
+                ax.scatter(coordinates[lab_idx,0], coordinates[lab_idx,1],alpha = alpha,label = i,color=colors[ii])
+            ax.legend(loc='best', shadow=True)
+        else:
+            title = title
+            ax = fig.add_subplot(nrows, ncols, plot_ind); plot_ind +=1 
+            ax.set_title(title); ax.set_xticklabels([]); ax.set_yticklabels([])
+            
+            m_y = medData[title].values
+            pl = ax.scatter(coordinates[:,0], coordinates[:,1],alpha = alpha,cmap=plt.cm.jet,c = m_y)
+            cbar = fig.colorbar(pl)
+
+    plt.show()
+    
+def plot_clusters_w_feat_save(coordinates, labels, alpha=.15,medData=None, *args):
+
+    fig = plt.figure(figsize=(11,8))
+    ax = fig.add_subplot(1, 1, 1)
+    ax.set_title('Clusters');  ax.set_xticklabels([]); ax.set_yticklabels([])
+    colors = plt.cm.tab10(np.linspace(0, 1, len(set(labels))))
+    for ii,i in enumerate(set(labels) - set([-1])):
+        lab_idx = (labels==i)
+        coor = np.mean(coordinates[lab_idx,:],axis=0)
+        ax.text(coor[0],coor[1], str(i), ha='center', va='center')
+        ax.scatter(coordinates[lab_idx,0], coordinates[lab_idx,1],alpha = alpha,color=colors[ii])
+    fig.savefig('plots/clusters.png')
+    
+    for arg_ind,title in enumerate(args):
+        
+        if medData[title].dtype == np.object:
+            fig = plt.figure(figsize=(11,8))
+            ax = fig.add_subplot(1, 1,1)
+            ax.set_title(title); ax.set_xticklabels([]); ax.set_yticklabels([])
+        
+            m_y = medData[title]
+            smy = set(m_y)
+            n_nums = len(set([extract_num(k) for k in smy]) - set([-1]))
+            if len(smy)<4: t_cmap=plt.cm.tab10
+            elif len(smy)<6: t_cmap=plt.cm.hsv
+            elif n_nums>5: t_cmap = plt.cm.cool
+            else: t_cmap=plt.cm.tab10
+            colors = t_cmap(np.linspace(0, 1, len(smy)))
+
+            for ii,i in enumerate(sorted(map(str,set(m_y)), key = lambda x: (extract_num(x),x))):
+                lab_idx = (m_y==i)
+                ax.scatter(coordinates[lab_idx,0], coordinates[lab_idx,1],alpha = alpha,label = i,color=colors[ii])
+            ax.legend(loc='best', shadow=True)
+        else:
+            fig = plt.figure(figsize=(13,8))
+            title = title
+            ax = fig.add_subplot(1, 1,1)
+            ax.set_title(title); ax.set_xticklabels([]); ax.set_yticklabels([])
+            
+            m_y = medData[title].values
+            pl = ax.scatter(coordinates[:,0], coordinates[:,1],alpha = alpha,cmap=plt.cm.jet,c = m_y)
+            cbar = fig.colorbar(pl)
+        for ii,i in enumerate(set(labels) - set([-1])):
+            lab_idx = (labels==i)
+            coor = np.mean(coordinates[lab_idx,:],axis=0)
+            ax.text(coor[0],coor[1], str(i), ha='center', va='center')
+        fig.savefig(f'plots/{arg_ind}_{title}.png')
+
+
 
 def div_cluster(coor,cls_labels, clus_id_div = 1, num_of_clus = 2, n_neighbors = 15, id_add = 100):
     knn_graph = kneighbors_graph(coor[cls_labels==clus_id_div], n_neighbors, include_self=False)
